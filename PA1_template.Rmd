@@ -1,5 +1,7 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
+author: "Cahit Bagdelen"
+date: "July 19, 2015"
 output: 
   html_document:
     keep_md: true
@@ -8,18 +10,126 @@ output:
 
 ## Loading and preprocessing the data
 
+### 1. Load the data (i.e. read.csv())
 
+```{r}
+act <- read.csv(unz("activity.zip", "activity.csv"))
+str(act)
+```
+
+### 2. Process/transform the data
+Convert act$date to Date format:
+```{r}
+act$date <- as.Date(act$date)
+str(act)
+```
+The summary of the activity data:
+```{r}
+summary(act)
+```
 
 ## What is mean total number of steps taken per day?
 
+### 1. Histogram of the total number of steps taken each day
+```{r}
+totalStepsPerDay <- aggregate(act$steps, by = list(act$date), sum, na.rm = TRUE )
+totalStepsPerDay$Date <- as.Date(totalStepsPerDay$Group.1)
+library("ggplot2")
+ggplot(totalStepsPerDay, aes(x = totalStepsPerDay$Date, y = totalStepsPerDay$x)) + 
+    geom_bar(stat="identity") + 
+    xlab("Date") + 
+    ylab("average number of steps per day") +
+    ggtitle("Histogram of daily total number of steps")
+```
 
+### 2. Mean and median total number of steps taken per day
+The mean total number of steps taken per day:
+```{r}
+meanStepsPerDay <- aggregate(act$steps, by = list(act$date), mean, na.rm = TRUE )
+```
+
+The median total number of steps taken per day:
+```{r}
+medianStepsPerDay <- aggregate(act$steps, by = list(act$date), median, na.rm = TRUE )
+```
 
 ## What is the average daily activity pattern?
 
+### 1. Make a time series plot 
+time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r}
+meanStepsPerInterval <- aggregate(act$steps, by = list(act$interval), mean, na.rm = TRUE )
+str(meanStepsPerInterval)
 
+ggplot(meanStepsPerInterval, aes(x = meanStepsPerInterval$Group.1, y = meanStepsPerInterval$x)) +
+    geom_line() + 
+    xlab("Intervals (5 min.)") + 
+    ylab("mean daily total number of steps") +
+    ggtitle("Timeseries for the mean daily total number of steps")
+```
+
+### 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+Maximum number of steps:
+```{r}
+max(meanStepsPerInterval$x)
+```
+The interval containing the maximum number of steps: 
+```{r}
+meanStepsPerInterval$Group.1[meanStepsPerInterval$x == max(meanStepsPerInterval$x)]
+```
 
 ## Imputing missing values
 
+### 1. total number of missing values in the dataset
+the total number of rows with NAs:
+```{r}
+sum(!complete.cases(act))
+```
+the number of NAs in each column of the data frame:
+```{r}
+sum(is.na(act$date))
+sum(is.na(act$steps))
+sum(is.na(act$interval))
+str(act)
+```
 
+### 2. Devise a strategy for filling in all of the missing values in the dataset.
+Mean of the interval (across all days) can be used to fill the NAs for an interval at a specific date.
+As shown above, interval means can be calculated as follows:
+```{r}
+meanStepsPerInterval <- aggregate(act$steps, by = list(act$interval), mean, na.rm = TRUE )
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+### 3. Fill missing values:
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+act_cmp <- act
+n <- nrow(act)
+for (i in 1:n) {
+    if (is.na(act$steps[i])) {
+        interval <- act$interval[i]
+        mean <- meanStepsPerInterval$x[meanStepsPerInterval$Group.1 == interval]
+        act_cmp$steps[i] <- mean
+    }
+}
+```
+
+Check number of NAs in the new data frame:
+```{r}
+sum(is.na(act_cmp$steps))
+sum(!complete.cases(act_cmp))
+str(act_cmp)
+```
+
+### 4. Histogram of the total number of steps taken each day
+```{r}
+totalStepsPerDay <- aggregate(act_cmp$steps, by = list(act_cmp$date), sum, na.rm = TRUE )
+totalStepsPerDay$Date <- as.Date(totalStepsPerDay$Group.1)
+library("ggplot2")
+ggplot(totalStepsPerDay, aes(x = totalStepsPerDay$Date, y = totalStepsPerDay$x)) + 
+    geom_bar(stat="identity") + 
+    xlab("Date") + 
+    ylab("average number of steps per day") +
+    ggtitle("Histogram of daily total number of steps (after imputing NAs)")
+```
+As we can observe in the histogram, we have values for each interval, now.
