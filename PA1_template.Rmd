@@ -133,3 +133,25 @@ ggplot(totalStepsPerDay, aes(x = totalStepsPerDay$Date, y = totalStepsPerDay$x))
     ggtitle("Histogram of daily total number of steps (after imputing NAs)")
 ```
 As we can observe in the histogram, we have values for each interval, now.
+
+## Are there differences in activity patterns between weekdays and week- ends?
+
+### 1. Create a new factor variable in the dataset
+Add weekDay as additional factor variable into the dataframe:
+```{r}
+weekDays <- weekdays(as.Date(act_cmp$date))
+act_cmp$weekDay <- factor(weekDays != "Saturday" & weekDays != "Sunday", labels = c("weekend", "weekday"))
+str(act_cmp)
+``` 
+
+### 2. Make a panel plot
+panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+```{r}
+meanStepsPerInterval <- aggregate(act_cmp$steps, by = list(act_cmp$interval, act_cmp$weekDay), mean, na.rm = TRUE )
+qplot(Group.1, x, data=meanStepsPerInterval, facets = Group.2 ~ ., geom = "line") + 
+    xlab("Intervals (5 min)") + 
+    ylab("mean total number of steps per day") + 
+    ggtitle("Mean daily total number of steps on Weekdays & Weekends")
+
+```
